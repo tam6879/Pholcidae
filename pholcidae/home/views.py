@@ -58,15 +58,17 @@ def try_get_location(ip: str) -> str:
     try:
         reader = geo2ip.database.reader("GeoLite2-City.mmdb")
         response = reader.city(ip)
+        # print("Location: ", (response.country.name + ", " + response.city.name + ", " + response.postal.code + ", LAT:" + response.location.latitude + ", LOG:" + response.location.longitude))
         return (response.country.name + ", " + response.city.name + ", " + response.postal.code + ", LAT:" + response.location.latitude + ", LOG:" + response.location.longitude)
     except:
         print("Error finding location: ")
-        return ""
-    return ""
-# TODO TRY TO GET OS AND BROWSER AGAIN!
+        return "N/A"
+    return "N/A"
+
 def try_get_device_info(request) -> str:
     user_agent = request.user_agent
-    return ("is mobile: ", user_agent.is_mobile, ", is tablet: ", user_agent.is_tablet, ", is PC: ", user_agent.is_pc)
+    # print("Device info: ", request.META.get('HTTP_USER_AGENT', ''))
+    return (request.META.get('HTTP_USER_AGENT', ''))
 
 
 ### VIEWS ###
@@ -77,8 +79,6 @@ def home(request):
     if BotProfile.objects.filter(ip_address=t_ip) and BotProfile.objects.get(ip_address=t_ip).is_banned:
         template = loader.get_template('banned.html')
         return HttpResponse(template.render())
-
-
     template = loader.get_template('home.html')
     t_url = request.get_full_path()
     return HttpResponse(template.render({"more_info_url": t_url + TAR_PIT_ENTERANCE}))
@@ -86,7 +86,9 @@ def home(request):
 def more_information(request, id):
     # get the public IP of the one making the request
     t_ip = get_ip_address(request)
-
+    # temporary
+    # try_get_device_info(request)
+    # try_get_location(t_ip)
     # Check if the Ip is banned
     if BotProfile.objects.filter(ip_address=t_ip) and BotProfile.objects.get(ip_address=t_ip).is_banned:
         template = loader.get_template('banned.html')
