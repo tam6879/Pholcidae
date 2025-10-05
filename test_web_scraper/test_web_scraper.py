@@ -63,7 +63,8 @@ async def run(playwright: Playwright):
     #base_url is the address of the server you wish to scrape, leave it on this for this test server if running it locally
     base_url = "http://127.0.0.1:8000"
     chromium = playwright.chromium
-    browser = await chromium.launch()
+    #Remove "headless=False" to skip seeing the browser as it runs
+    browser = await chromium.launch(headless=False)
     page = await browser.new_page()
     await page.goto(base_url)
     await scrape_all_pages(base_url, page)
