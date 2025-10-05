@@ -5,14 +5,11 @@ from django.utils import timezone
 import markovify as mark
 import random as rngesus
 import string
-from os import listdir, getcwd
+from os import getcwd
 from os.path import isfile, join
 from time import sleep
 import sqlite3
-import pickle
 from home.models import CachedPage
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
-import torch
 
 SENTENCES_PER_BLURB = 16
 
@@ -26,18 +23,13 @@ NEW_PAGE_LINKS = 4
 corpus_path = "corpus.txt"
 generated_corpus = False
 
+# Generates a markov chain model from a given corpus text
 def generate_model(file_name: str) -> None:
         with open(corpus_path, "r")as t_file:
             corpus_text = t_file.read()
         return mark.Text(corpus_text)
 
-def generate_image(prompt: str, id: str) -> str:
-    pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4")
-    pipe.to("cuda").manual_seed(0) 
-    t_scheduler = EulerDiscreteScheduler(beta_start=0.00085, beta_end=0.012,beta_schedule="scaled_linear")
-    t_image = pipe("Create an image illustrating this exerpt of text: " + prompt, scheduler = t_scheduler, num_inference_steps=10, guidance_scale =3.0,).images[0]
-    image.save("test.png")
-
+# Randomly generates a paragraph of sentances with the markov model
 def generate_blurb(t_model) -> str:
     text = "\t"
     for i in range(SENTENCES_PER_BLURB):
@@ -47,6 +39,7 @@ def generate_blurb(t_model) -> str:
         text += (" " + t_text)
     return text
 
+# Generates a random string of 20 characters to use as the page id
 def generate_id() -> str:
     chars = string.ascii_letters + string.digits
     return "".join(rngesus.choice(chars) for i in range(ID_LENGTH))
@@ -56,41 +49,30 @@ def generate_id() -> str:
 
 def home(request):
     template = loader.get_template('home.html')
-    return HttpResponse(template.render())
+    t_url = request.get_full_path()
+    return HttpResponse(template.render({"more_info_url": t_url + "more_information/HdtMq3cW6jCxZsuWEz8C"}))
 
 def more_information(request, id):
-    
     template = loader.get_template('more_information.html')
+    # wait for a few seconds to keep traffic managable
     sleep(rngesus.uniform(MIN_WAIT_TIME, MAX_WAIT_TIME))
+    # check if the page was already cached, and if so load it
     if CachedPage.objects.filter(id=id):
-        print("SEEN THIS ID")
         t_page = CachedPage.objects.get(id=id)
-        context = {"text": t_page.text, 
-        "link1": t_page.link1,
-        "link2": t_page.link2,
-        "link3": t_page.link3,
-        "link4": t_page.link4,
-        "image": t_page.image}
+        context = {"text": t_page.text, "link1": t_page.link1, "link2": t_page.link2, "link3": t_page.link3, "link4": t_page.link4, "image": t_page.image}
         return HttpResponse(template.render(context, request))
-        
-    else:
-        print("UNIQUE ID")
-
+    # otherwise, generate the markov text, choose an image, and make 4 new links
     text_model = generate_model(corpus_path)
     t_text = generate_blurb(text_model)
-    # generate_image(t_text, id)
     context = {"text": t_text}
-
-    t_url = request.get_full_path()[:-20]
-
+    t_url = request.get_full_path()[:-ID_LENGTH]
     for i in range(1, NEW_PAGE_LINKS + 1):
         context["link" + str(i)] = t_url + generate_id()
         print(context["link" + str(i)])
     context["image"] = str(rngesus.choice(list(range(7)))) + ".png"
-    print("image url: ", context["image"])
-
+    # now save the new page
     t_page = CachedPage.objects.create(id = id, text = t_text, time = timezone.now(), link1 = context["link1"], link2 = context["link2"], link3 = context["link3"], link4 = context["link4"], image = context["image"])
     t_page.save()
-
+    # return the page
     return HttpResponse(template.render(context, request))
 
