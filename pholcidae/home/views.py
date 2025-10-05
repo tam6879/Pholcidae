@@ -20,6 +20,8 @@ MAX_WAIT_TIME = 3.0
 
 NEW_PAGE_LINKS = 4
 
+TAR_PIT_ENTERANCE = "more_information/HdtMq3cW6jCxZsuWEz8C"
+
 corpus_path = "corpus.txt"
 generated_corpus = False
 
@@ -50,7 +52,7 @@ def generate_id() -> str:
 def home(request):
     template = loader.get_template('home.html')
     t_url = request.get_full_path()
-    return HttpResponse(template.render({"more_info_url": t_url + "more_information/HdtMq3cW6jCxZsuWEz8C"}))
+    return HttpResponse(template.render({"more_info_url": t_url + TAR_PIT_ENTERANCE}))
 
 def more_information(request, id):
     template = loader.get_template('more_information.html')
